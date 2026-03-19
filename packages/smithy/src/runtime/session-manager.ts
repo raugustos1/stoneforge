@@ -1343,7 +1343,8 @@ export class SessionManagerImpl implements SessionManager {
     providerName: string | undefined,
     agentExecutablePath?: string
   ): Promise<AgentProvider | undefined> {
-    const effectiveProvider = providerName ?? 'claude-code';
+    // Backward compatibility: treat 'claude' as alias for 'claude-code'
+    const effectiveProvider = providerName === 'claude' ? 'claude-code' : (providerName ?? 'claude-code');
     const resolvedPath = this.resolveExecutablePath(effectiveProvider, agentExecutablePath);
 
     if (resolvedPath) {

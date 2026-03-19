@@ -307,7 +307,11 @@ export function CreateAgentDialog({
       name: form.name.trim(),
       role: form.role,
       tags: form.tags.trim() ? form.tags.split(',').map(t => t.trim()).filter(Boolean) : undefined,
-      provider: form.provider !== 'claude-code' ? form.provider : undefined,
+      provider: (() => {
+        // Normalize legacy 'claude' -> 'claude-code' before comparison
+        const normalizedProvider = form.provider === 'claude' ? 'claude-code' : form.provider;
+        return normalizedProvider !== 'claude-code' ? normalizedProvider : undefined;
+      })(),
       model: form.model || undefined, // Only include if not empty (not using default)
       executablePath: form.executablePath.trim() || undefined, // Only include if not empty (not using default)
     };
