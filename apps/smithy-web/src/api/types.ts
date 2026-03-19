@@ -52,6 +52,7 @@ export interface BaseAgentMetadata {
 
 export interface DirectorMetadata extends BaseAgentMetadata {
   agentRole: 'director';
+  targetBranch?: string;
 }
 
 export interface WorkerMetadata extends BaseAgentMetadata {
