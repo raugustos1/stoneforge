@@ -35,6 +35,12 @@ export interface OrchestratorTaskMeta {
   /** Path to the worktree where the agent is working (e.g., ".stoneforge/.worktrees/alice-implement-feature/") */
   readonly worktree?: string;
 
+  /**
+   * Target branch for merging this task. Inherited from the owning director
+   * at dispatch time. If not set, falls back to workspace default.
+   */
+  readonly targetBranch?: string;
+
   /** Claude Code session ID for this task, enabling session resumption */
   readonly sessionId?: string;
 
@@ -343,6 +349,7 @@ export function isOrchestratorTaskMeta(value: unknown): value is OrchestratorTas
   // All fields are optional, so we just check types if present
   if (obj.branch !== undefined && typeof obj.branch !== 'string') return false;
   if (obj.worktree !== undefined && typeof obj.worktree !== 'string') return false;
+  if (obj.targetBranch !== undefined && typeof obj.targetBranch !== 'string') return false;
   if (obj.sessionId !== undefined && typeof obj.sessionId !== 'string') return false;
   if (obj.assignedAgent !== undefined && typeof obj.assignedAgent !== 'string') return false;
   if (obj.owningDirector !== undefined && typeof obj.owningDirector !== 'string') return false;
