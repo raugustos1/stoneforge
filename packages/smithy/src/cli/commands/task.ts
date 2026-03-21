@@ -451,6 +451,62 @@ async function taskMergeHandler(
       return failure(lines.join('\n'), ExitCode.GENERAL_ERROR);
     }
 
+    // 3b. Post-merge verification: confirm commits landed on origin before marking as merged
+    const { exec: execCb } = await import('node:child_process');
+    const { promisify: promisifyUtil } = await import('node:util');
+    const execVerify = promisifyUtil(execCb);
+    const effectiveTargetForVerify = targetBranch ?? await detectTargetBranch(workspaceRoot);
+
+    try {
+      await execVerify(`git fetch origin ${effectiveTargetForVerify}`, { cwd: workspaceRoot });
+    } catch (fetchErr) {
+      const fetchMsg = fetchErr instanceof Error ? fetchErr.message : String(fetchErr);
+      return failure(
+        `Post-merge verification failed: could not fetch origin/${effectiveTargetForVerify}. ${fetchMsg}`,
+        ExitCode.GENERAL_ERROR
+      );
+    }
+
+    if (mergeResult.commitHash) {
+      // Verify the merge commit is an ancestor of origin/{targetBranch}
+      try {
+        await execVerify(
+          `git merge-base --is-ancestor ${mergeResult.commitHash} origin/${effectiveTargetForVerify}`,
+          { cwd: workspaceRoot }
+        );
+      } catch {
+        return failure(
+          `Post-merge verification failed: commit ${mergeResult.commitHash} is not on origin/${effectiveTargetForVerify}. ` +
+          `The merge commit may not have been delivered to the remote. Please retry or push manually.`,
+          ExitCode.GENERAL_ERROR
+        );
+      }
+    } else if (mergeResult.alreadyMerged) {
+      // Verify the local source branch has no commits ahead of origin/{targetBranch}
+      try {
+        const { stdout: countStr } = await execVerify(
+          `git rev-list --count origin/${effectiveTargetForVerify}..${sourceBranch}`,
+          { cwd: workspaceRoot, encoding: 'utf8' }
+        );
+        const aheadCount = parseInt(countStr.trim(), 10);
+        if (aheadCount > 0) {
+          return failure(
+            `Post-merge verification failed: source branch ${sourceBranch} has ${aheadCount} commit(s) ` +
+            `not on origin/${effectiveTargetForVerify} despite being reported as already merged. ` +
+            `The commits may not have been delivered to the remote. Please retry or push manually.`,
+            ExitCode.GENERAL_ERROR
+          );
+        }
+      } catch (revListErr) {
+        const revListMsg = revListErr instanceof Error ? revListErr.message : String(revListErr);
+        return failure(
+          `Post-merge verification failed: could not verify source branch ${sourceBranch} against ` +
+          `origin/${effectiveTargetForVerify}. ${revListMsg}`,
+          ExitCode.GENERAL_ERROR
+        );
+      }
+    }
+
     // 4. Atomic status update: set mergeStatus + close in one call
     const now = createTimestamp();
     const newMeta = updateOrchestratorTaskMeta(
@@ -470,31 +526,26 @@ async function taskMergeHandler(
     });
 
     // 5. Clean up: delete source branch and remove task worktree (best-effort)
-    const { exec } = await import('node:child_process');
-    const { promisify } = await import('node:util');
-    const execAsync = promisify(exec);
-
     try {
-      await execAsync(`git branch -D ${sourceBranch}`, { cwd: workspaceRoot });
+      await execVerify(`git branch -D ${sourceBranch}`, { cwd: workspaceRoot });
     } catch { /* branch may not exist locally */ }
 
     try {
-      await execAsync(`git push origin --delete ${sourceBranch}`, { cwd: workspaceRoot });
+      await execVerify(`git push origin --delete ${sourceBranch}`, { cwd: workspaceRoot });
     } catch { /* branch may not exist on remote */ }
 
     const worktreePath = orchestratorMeta?.worktree;
     if (worktreePath) {
       try {
-        await execAsync(`git worktree remove --force "${worktreePath}"`, { cwd: workspaceRoot });
+        await execVerify(`git worktree remove --force "${worktreePath}"`, { cwd: workspaceRoot });
       } catch { /* worktree may already be gone */ }
     }
 
     // 6. Sync local target branch (best-effort, after all bookkeeping is done)
-    const effectiveTarget = targetBranch ?? await detectTargetBranch(workspaceRoot);
     try {
-      await execAsync('git fetch origin', { cwd: workspaceRoot, encoding: 'utf8' });
+      await execVerify('git fetch origin', { cwd: workspaceRoot, encoding: 'utf8' });
     } catch { /* best-effort */ }
-    await syncLocalBranch(workspaceRoot, effectiveTarget);
+    await syncLocalBranch(workspaceRoot, effectiveTargetForVerify);
 
     // 7. Output result
     const mode = getOutputMode(options);
