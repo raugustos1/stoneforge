@@ -965,6 +965,7 @@ export class WorktreeManagerImpl implements WorktreeManager {
       cwd: worktreePath,
       encoding: 'utf8' as const,
       timeout: INSTALL_TIMEOUT_MS,
+      shell: true,
     };
 
     // When using corepack, the command becomes 'corepack' and the manager
@@ -1046,6 +1047,7 @@ export class WorktreeManagerImpl implements WorktreeManager {
       await execFileAsync('corepack', ['--version'], {
         encoding: 'utf8',
         timeout: 10_000,
+        shell: true,
       });
       return true;
     } catch {
