@@ -43,6 +43,8 @@ export interface OnboardingTourState {
   skip: () => void;
   /** Complete the tour (marks as completed) */
   complete: () => void;
+  /** Resume the tour from the persisted step (for browser refresh) */
+  resume: () => void;
   /** Reset the tour (clears completion flag for re-access from settings) */
   reset: () => void;
   /** Jump to an arbitrary step index */
@@ -137,6 +139,11 @@ export function useOnboardingTour(steps: TourStep[]): OnboardingTourState {
     setIsActive(true);
   }, []);
 
+  const resume = useCallback(() => {
+    // Resume from the persisted step (already restored from localStorage on mount)
+    setIsActive(true);
+  }, []);
+
   const next = useCallback(() => {
     setCurrentStep((prev) => {
       if (prev >= totalSteps - 1) {
@@ -209,6 +216,7 @@ export function useOnboardingTour(steps: TourStep[]): OnboardingTourState {
     currentSection,
     totalSections,
     start,
+    resume,
     next,
     prev,
     skip,

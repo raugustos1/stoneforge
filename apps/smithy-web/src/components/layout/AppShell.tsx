@@ -317,6 +317,7 @@ const ONBOARDING_STEPS: TourStep[] = [
     description:
       'Your command center -- see all active agents, tasks, and system health at a glance.',
     section: 'Command Center',
+    route: '/activity',
   },
   {
     id: 'system-status',
@@ -325,6 +326,7 @@ const ONBOARDING_STEPS: TourStep[] = [
     description:
       'These indicators show active agents, in-progress tasks, and merge request pipeline health. A quick pulse check.',
     section: 'Command Center',
+    route: '/activity',
   },
   {
     id: 'agent-cards',
@@ -333,6 +335,7 @@ const ONBOARDING_STEPS: TourStep[] = [
     description:
       'Each card is a running agent showing its status, current task, and live output. Click one to open its terminal.',
     section: 'Command Center',
+    route: '/activity',
   },
   {
     id: 'header-bar',
@@ -341,6 +344,7 @@ const ONBOARDING_STEPS: TourStep[] = [
     description:
       'The header gives you the command palette (Cmd+K), daemon toggle, emergency stop, notifications, and theme switch -- available on every page.',
     section: 'Command Center',
+    route: '/activity',
   },
 
   // ── Section 2: Managing Work (routes: /tasks, /plans, /merge-requests) ─
@@ -621,21 +625,22 @@ export function AppShell() {
       if (step.id === 'notification-bell') {
         return { ...step, enabled: workflowPreset.preset === 'approve' };
       }
-      // Director steps — conditional on director existence, auto-expand panel
+      // Director steps — conditional on director existence + desktop only, auto-expand panel
       if (DIRECTOR_STEP_IDS.has(step.id)) {
         return {
           ...step,
-          enabled: !!directorAgent,
+          enabled: !!directorAgent && !isMobile,
           onActivate: () => setDirectorCollapsed(false),
         };
       }
       return step;
     });
-  }, [workflowPreset.preset, directorAgent, setDirectorCollapsed]);
+  }, [workflowPreset.preset, directorAgent, setDirectorCollapsed, isMobile]);
 
   const onboardingTour = useOnboardingTour(tourSteps);
 
-  // Auto-start tour on first visit after preset is configured
+  // Auto-start tour on first visit after preset is configured,
+  // or resume a tour in progress after browser refresh (saved step in localStorage)
   const routerState2 = useRouterState();
   useEffect(() => {
     if (
@@ -643,14 +648,26 @@ export function AppShell() {
       !workflowPreset.isLoading &&
       !onboardingTour.isCompleted &&
       !onboardingTour.isActive &&
-      !hasProviderIssues &&
-      routerState2.location.pathname === '/activity'
+      !hasProviderIssues
     ) {
-      // Small delay to let the page render before starting the tour
-      const timer = setTimeout(() => {
-        onboardingTour.start();
-      }, 800);
-      return () => clearTimeout(timer);
+      // Check if we're resuming a tour in progress (saved step in localStorage)
+      const savedStep = typeof window !== 'undefined'
+        ? localStorage.getItem('stoneforge:onboarding-step')
+        : null;
+      const isResume = savedStep !== null && parseInt(savedStep, 10) > 0;
+
+      if (isResume || routerState2.location.pathname === '/activity') {
+        // Small delay to let the page render before starting the tour
+        const timer = setTimeout(() => {
+          if (isResume) {
+            // Resume from saved step — goToStep sets the index, then start activates the tour
+            onboardingTour.resume();
+          } else {
+            onboardingTour.start();
+          }
+        }, 800);
+        return () => clearTimeout(timer);
+      }
     }
   }, [
     workflowPreset.isConfigured,
@@ -660,6 +677,16 @@ export function AppShell() {
     hasProviderIssues,
     routerState2.location.pathname,
   ]);
+
+  // Navigate to /activity when tour is restarted from settings
+  useEffect(() => {
+    const handleRestart = () => {
+      // Navigate to /activity so the first step's target element is available
+      router.navigate({ to: '/activity' });
+    };
+    window.addEventListener('restart-onboarding-tour', handleRestart);
+    return () => window.removeEventListener('restart-onboarding-tour', handleRestart);
+  }, [router]);
 
   // Ensure target elements are visible during the tour
   const activeSteps = useMemo(
@@ -681,7 +708,13 @@ export function AppShell() {
     const currentPath = routerState2.location.pathname;
     if (step.route && currentPath !== step.route) {
       setIsTourNavigating(true);
-      router.navigate({ to: step.route }).then(() => setIsTourNavigating(false));
+      router.navigate({ to: step.route }).then(() => {
+        // Small delay to allow the target page to render before clearing the overlay
+        setTimeout(() => setIsTourNavigating(false), 100);
+      });
+    } else {
+      // Ensure navigating state is cleared if we're already on the right page
+      setIsTourNavigating(false);
     }
   }, [onboardingTour.isActive, onboardingTour.currentStep, activeSteps]);
 
