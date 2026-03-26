@@ -346,6 +346,24 @@ const ONBOARDING_STEPS: TourStep[] = [
     section: 'Command Center',
     route: '/activity',
   },
+  {
+    id: 'stop-all-agents',
+    targetTestId: 'stop-all-agents-button',
+    title: 'Emergency Stop',
+    description:
+      'This button immediately stops all running agents. Use it as an emergency brake if you see something going wrong and need to intervene quickly.',
+    section: 'Command Center',
+    route: '/activity',
+  },
+  {
+    id: 'daemon-toggle',
+    targetTestId: 'daemon-toggle',
+    title: 'Autopilot',
+    description:
+      'The Autopilot toggle controls the dispatch daemon. When enabled, tasks are automatically assigned to available agents. Turn it off when you want to pause automatic work assignment and assign tasks manually.',
+    section: 'Command Center',
+    route: '/activity',
+  },
 
   // ── Section 2: Managing Work (routes: /tasks, /plans, /merge-requests) ─
   {
@@ -362,7 +380,7 @@ const ONBOARDING_STEPS: TourStep[] = [
     targetTestId: 'tasks-create',
     title: 'Create Tasks',
     description:
-      'Click here to create new tasks. Assign them to agents, set priorities, and attach them to plans.',
+      "You can manually create tasks here, but you usually won't need to. Just give work to the Director and it will plan and create tasks for you automatically.",
     section: 'Managing Work',
     route: '/tasks',
   },
@@ -405,13 +423,22 @@ const ONBOARDING_STEPS: TourStep[] = [
     route: '/agents',
   },
   {
-    id: 'agents-create',
+    id: 'agents-create-modal',
     targetTestId: 'agents-create',
     title: 'Create Agents',
     description:
-      'Add new agents to expand your team. Each worker gets its own git worktree and can be assigned tasks independently.',
+      'Click (+) to add agents. Workers execute individual tasks, Persistent Workers stay running across tasks, and Stewards handle code review and merges. Each type serves a different role in your workflow.',
     section: 'Agent Fleet',
     route: '/agents',
+  },
+  {
+    id: 'agents-settings',
+    targetTestId: 'settings-section-agent-defaults',
+    title: 'Agent Provider & Model',
+    description:
+      'Configure which AI provider and model your agents use. Choose the default provider here, and set model preferences per provider. New agents inherit these defaults.',
+    section: 'Agent Fleet',
+    route: '/settings',
   },
   {
     id: 'workspaces-overview',
@@ -562,6 +589,15 @@ const ONBOARDING_STEPS: TourStep[] = [
     route: '/settings',
   },
   {
+    id: 'workflow-presets',
+    targetTestId: 'settings-section-workflow-preset',
+    title: 'Workflow Presets',
+    description:
+      'Choose how Stoneforge operates. Auto mode merges work directly to main for fast iteration. Review mode merges to a review branch for you to inspect. Approve mode requires your approval before agents take restricted actions.',
+    section: 'Settings & Wrap-Up',
+    route: '/settings',
+  },
+  {
     id: 'tour-complete',
     targetTestId: 'activity-page',
     title: "You're Ready!",
@@ -621,6 +657,32 @@ export function AppShell() {
   // Build steps with conditional enablement and onActivate callbacks
   const tourSteps = useMemo(() => {
     return ONBOARDING_STEPS.map((step) => {
+      // Agent settings — ensure preferences tab is active on settings page
+      if (step.id === 'agents-settings') {
+        return {
+          ...step,
+          onActivate: () => {
+            // Click the preferences tab so the agent defaults section is visible
+            const preferencesTab = document.querySelector('[data-testid="settings-tab-preferences"]');
+            if (preferencesTab instanceof HTMLElement) {
+              preferencesTab.click();
+            }
+          },
+        };
+      }
+      // Workflow presets — navigate to settings workspace tab
+      if (step.id === 'workflow-presets') {
+        return {
+          ...step,
+          onActivate: () => {
+            // Click the workspace tab so the workflow preset section is visible
+            const workspaceTab = document.querySelector('[data-testid="settings-tab-workspace"]');
+            if (workspaceTab instanceof HTMLElement) {
+              workspaceTab.click();
+            }
+          },
+        };
+      }
       // Notification bell — only shown for 'approve' preset
       if (step.id === 'notification-bell') {
         return { ...step, enabled: workflowPreset.preset === 'approve' };
