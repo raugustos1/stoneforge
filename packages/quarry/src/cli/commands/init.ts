@@ -8,7 +8,6 @@
  */
 
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
-import { createInterface } from 'node:readline';
 import { join } from 'node:path';
 import type { Command, GlobalOptions, CommandResult } from '../types.js';
 import { success, failure, ExitCode } from '../types.js';
@@ -410,40 +409,99 @@ const PRESET_DESCRIPTIONS: Record<WorkflowPreset, string> = {
 };
 
 /**
- * Prompts the user to choose a workflow preset interactively.
+ * Renders the preset menu to stdout with the current selection highlighted.
+ */
+function renderPresetMenu(
+  presets: WorkflowPreset[],
+  selectedIndex: number,
+  isInitialRender: boolean
+): void {
+  const { stdout } = process;
+
+  if (!isInitialRender) {
+    // Move cursor up to overwrite previous menu lines
+    for (let i = 0; i < presets.length; i++) {
+      stdout.write('\x1B[F\x1B[2K');
+    }
+  }
+
+  for (let i = 0; i < presets.length; i++) {
+    const p = presets[i];
+    const label = p.charAt(0).toUpperCase() + p.slice(1);
+    const prefix = i === selectedIndex ? '  ❯ ' : '    ';
+    stdout.write(`${prefix}${label.padEnd(10)}— ${PRESET_DESCRIPTIONS[p]}\n`);
+  }
+}
+
+/**
+ * Prompts the user to choose a workflow preset interactively
+ * using arrow-key navigation.
  */
 async function promptWorkflowPreset(): Promise<WorkflowPreset> {
-  const rl = createInterface({
-    input: process.stdin,
-    output: process.stdout,
-  });
-
   const presets: WorkflowPreset[] = ['auto', 'review', 'approve'];
+  let selectedIndex = 0;
+
+  const { stdin, stdout } = process;
 
   return new Promise((resolve) => {
-    const lines = [
-      '? Choose a workflow preset:',
-      ...presets.map((p, i) => {
-        const label = p.charAt(0).toUpperCase() + p.slice(1);
-        const prefix = i === 0 ? '  ❯ ' : '    ';
-        return `${prefix}${label.padEnd(10)}— ${PRESET_DESCRIPTIONS[p]}`;
-      }),
-      '',
-      'Enter preset (auto/review/approve) [auto]: ',
-    ];
+    // Print header
+    stdout.write('? Choose a workflow preset:\n');
 
-    rl.question(lines.join('\n'), (answer) => {
-      rl.close();
-      const trimmed = answer.trim().toLowerCase();
-      if (trimmed === '' || trimmed === 'auto') {
-        resolve('auto');
-      } else if (VALID_WORKFLOW_PRESETS.includes(trimmed as WorkflowPreset)) {
-        resolve(trimmed as WorkflowPreset);
-      } else {
-        // Default to 'auto' on invalid input
-        resolve('auto');
+    // Hide cursor during selection
+    stdout.write('\x1B[?25l');
+
+    // Initial render
+    renderPresetMenu(presets, selectedIndex, true);
+
+    // Enable raw mode for keypress detection
+    const wasRaw = stdin.isRaw;
+    stdin.setRawMode(true);
+    stdin.resume();
+    stdin.setEncoding('utf8');
+
+    const cleanup = () => {
+      // Show cursor
+      stdout.write('\x1B[?25h');
+      // Restore raw mode state
+      stdin.setRawMode(wasRaw ?? false);
+      stdin.pause();
+      stdin.removeListener('data', onData);
+    };
+
+    const onData = (data: string) => {
+      // Ctrl+C — exit gracefully
+      if (data === '\x03') {
+        cleanup();
+        process.exit(0);
       }
-    });
+
+      // Enter — confirm selection
+      if (data === '\r' || data === '\n') {
+        cleanup();
+        resolve(presets[selectedIndex]);
+        return;
+      }
+
+      // Arrow up
+      if (data === '\x1B[A') {
+        if (selectedIndex > 0) {
+          selectedIndex--;
+          renderPresetMenu(presets, selectedIndex, false);
+        }
+        return;
+      }
+
+      // Arrow down
+      if (data === '\x1B[B') {
+        if (selectedIndex < presets.length - 1) {
+          selectedIndex++;
+          renderPresetMenu(presets, selectedIndex, false);
+        }
+        return;
+      }
+    };
+
+    stdin.on('data', onData);
   });
 }
 
