@@ -368,7 +368,7 @@ const ONBOARDING_STEPS: TourStep[] = [
   },
   {
     id: 'tasks-views',
-    targetTestId: 'tasks-tab-in-progress',
+    targetTestId: 'tasks-tab-in_progress',
     title: 'Status Tabs',
     description:
       'Filter tasks by lifecycle stage. "In Progress" and "Awaiting Merge" show what agents are actively working on.',

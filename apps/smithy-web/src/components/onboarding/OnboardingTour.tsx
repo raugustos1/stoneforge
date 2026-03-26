@@ -579,7 +579,19 @@ export function OnboardingTour({
       `[data-testid="${currentStepData.targetTestId}"]`
     );
     if (el) {
-      setTargetRect(el.getBoundingClientRect());
+      const newRect = el.getBoundingClientRect();
+      setTargetRect((prev) => {
+        if (
+          prev &&
+          prev.top === newRect.top &&
+          prev.left === newRect.left &&
+          prev.width === newRect.width &&
+          prev.height === newRect.height
+        ) {
+          return prev; // No change — keep same reference
+        }
+        return newRect;
+      });
     } else {
       setTargetRect(null);
     }
