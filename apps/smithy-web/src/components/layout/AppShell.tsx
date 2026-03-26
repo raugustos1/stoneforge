@@ -507,26 +507,32 @@ const ONBOARDING_STEPS: TourStep[] = [
   {
     id: 'director-actions',
     targetTestId: 'director-panel-header',
-    title: 'Director Actions',
+    targetSelector: '[data-testid^="director-sift-backlog-"]',
+    title: 'Sift Backlog',
     description:
-      'The toolbar gives you key controls: the pickaxe icon sifts your backlog, the mail icon shows pending messages to process, and the branch indicator sets the target git branch.',
+      'The pickaxe icon triggers backlog sifting — the director reads your task backlog, prioritizes work, and creates plans for your agents.',
     section: 'The Director',
+    noAutoAdvance: true,
   },
   {
     id: 'director-start',
     targetTestId: 'director-panel-header',
+    targetSelector: '[data-testid^="director-start-"], [data-testid^="director-restart-"]',
     title: 'Start the Director',
     description:
       'Click the green play button to start a director session. Once running, use the yellow restart button to reset it, or the red stop button to end the session.',
     section: 'The Director',
+    noAutoAdvance: true,
   },
   {
     id: 'director-messages',
     targetTestId: 'director-panel-header',
+    targetSelector: '[data-testid^="toggle-messages-queue-"]',
     title: 'Process Messages',
     description:
       'Toggle the mail icon to see queued messages. Process them all at once, or click the play button on individual messages. The director reads and responds to each one.',
     section: 'The Director',
+    noAutoAdvance: true,
   },
 
   // ── Section 5: Collaboration (routes: /messages, /documents, /inbox) ──

@@ -30,6 +30,8 @@ export interface TourStep {
   id: string;
   /** data-testid of the target element to highlight */
   targetTestId: string;
+  /** Optional CSS selector override (used instead of targetTestId when provided) */
+  targetSelector?: string;
   /** Title shown in the tooltip */
   title: string;
   /** Description shown in the tooltip */
@@ -610,9 +612,9 @@ export function OnboardingTour({
       return;
     }
 
-    const el = document.querySelector(
-      `[data-testid="${currentStepData.targetTestId}"]`
-    );
+    const selector = currentStepData.targetSelector
+      || `[data-testid="${currentStepData.targetTestId}"]`;
+    const el = document.querySelector(selector);
     if (el) {
       const newRect = el.getBoundingClientRect();
       prevTargetRectRef.current = newRect;
@@ -661,10 +663,10 @@ export function OnboardingTour({
     // Skip auto-advance for steps that explicitly opt out (detail panels, etc.)
     if (!currentStepData?.noAutoAdvance) {
       autoAdvanceTimerRef.current = setTimeout(() => {
+        const autoAdvanceSelector = currentStepData?.targetSelector
+          || `[data-testid="${currentStepData?.targetTestId}"]`;
         const el = currentStepData
-          ? document.querySelector(
-              `[data-testid="${currentStepData.targetTestId}"]`
-            )
+          ? document.querySelector(autoAdvanceSelector)
           : null;
         if (!el) {
           onNext();
