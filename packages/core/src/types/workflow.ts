@@ -34,8 +34,7 @@ export { isValidPlaybookId, validatePlaybookId };
 /**
  * Branded type for Workflow IDs
  */
-declare const WorkflowIdBrand: unique symbol;
-export type WorkflowId = ElementId & { readonly [WorkflowIdBrand]: typeof WorkflowIdBrand };
+export type WorkflowId = ElementId & { readonly __workflowIdBrand: 'WorkflowId' };
 
 // ============================================================================
 // Workflow Status
