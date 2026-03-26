@@ -493,6 +493,7 @@ const ONBOARDING_STEPS: TourStep[] = [
     description:
       'The Director is your AI orchestrator. It reads your backlog, creates plans, assigns tasks to workers, and manages the entire workflow. This panel is your primary interface.',
     section: 'The Director',
+    route: '/activity',
   },
   {
     id: 'director-tabs',
@@ -750,6 +751,17 @@ export function AppShell() {
                 },
               });
             }, 300);
+          },
+        };
+      }
+
+      // ── Merge Requests section: inject mock MR data + collapse director ─
+      if (step.id === 'merge-requests') {
+        return {
+          ...step,
+          onActivate: () => {
+            setDirectorCollapsed(true);
+            injectTourMockData(queryClient, 'merge-requests');
           },
         };
       }

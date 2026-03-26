@@ -35,7 +35,7 @@ import { ELEMENT_KEYS } from '../../api/hooks/useAllElements';
 // Types
 // ============================================================================
 
-export type TourMockContext = 'activity' | 'tasks' | 'plans' | 'documents' | 'messages';
+export type TourMockContext = 'activity' | 'tasks' | 'plans' | 'documents' | 'messages' | 'merge-requests';
 
 // ============================================================================
 // State Tracking
@@ -111,6 +111,10 @@ const ID = {
   msg9: 'tour-mock-msg-9',
   msg10: 'tour-mock-msg-10',
   msg11: 'tour-mock-msg-11',
+  // Merge Requests (tasks with merge metadata)
+  mr1: 'tour-mock-mr-1',
+  mr2: 'tour-mock-mr-2',
+  mr3: 'tour-mock-mr-3',
   // Operator
   operator: 'tour-mock-operator',
 } as const;
@@ -674,6 +678,54 @@ function getChannelMessages(channelId: string): ChannelMessage[] {
 }
 
 // ============================================================================
+// Mock Merge Request Data (Tasks with orchestrator.mergeStatus metadata)
+// ============================================================================
+
+const mockMergeRequests: Task[] = [
+  makeElementTask(ID.mr1, 'Add user authentication endpoints', 'review', {
+    assignee: ID.agentWorker1,
+    priority: 1,
+    taskType: 'feature',
+    updatedAt: isoAgo(30 * 60_000), // 30 minutes ago
+    metadata: {
+      orchestrator: {
+        branch: 'agent/e-worker-1/add-user-auth-endpoints',
+        mergeStatus: 'pending',
+        assignedAgent: ID.agentWorker1,
+      },
+    },
+  }),
+  makeElementTask(ID.mr2, 'Fix pagination off-by-one error', 'review', {
+    assignee: ID.agentWorker2,
+    priority: 1,
+    taskType: 'bug',
+    updatedAt: isoAgo(2 * hour),
+    metadata: {
+      orchestrator: {
+        branch: 'agent/e-worker-2/fix-pagination-off-by-one',
+        mergeStatus: 'testing',
+        testRunCount: 1,
+        assignedAgent: ID.agentWorker2,
+      },
+    },
+  }),
+  makeElementTask(ID.mr3, 'Update API documentation for v2', 'closed', {
+    assignee: ID.agentWorker1,
+    priority: 2,
+    taskType: 'task',
+    updatedAt: isoAgo(day),
+    metadata: {
+      orchestrator: {
+        branch: 'agent/e-worker-1/update-api-docs-v2',
+        mergeStatus: 'merged',
+        testRunCount: 2,
+        assignedAgent: ID.agentWorker1,
+      },
+    },
+  }),
+];
+
+// ============================================================================
 // Context Injection Functions
 // ============================================================================
 
@@ -827,6 +879,31 @@ function injectMessagesContext(queryClient: QueryClient): void {
   injectedKeys = keys;
 }
 
+function injectMergeRequestsContext(queryClient: QueryClient): void {
+  const keys: (readonly unknown[])[] = [];
+
+  // Merge requests list (useMergeRequests uses ['merge-requests', filter])
+  // Inject for the default "all" filter (undefined) so the page shows data
+  queryClient.setQueryData(['merge-requests', undefined], mockMergeRequests);
+  keys.push(['merge-requests', undefined]);
+
+  // Also inject for common filter combinations the page may use
+  // Filter out the merged MR for the non-merged view
+  const activeMRs = mockMergeRequests.filter(t => t.status === 'review');
+  queryClient.setQueryData(['merge-requests', { status: 'all', showMerged: false }], activeMRs);
+  keys.push(['merge-requests', { status: 'all', showMerged: false }]);
+
+  // Inject merge request counts (useMergeRequestCounts uses ['merge-requests', 'counts'])
+  queryClient.setQueryData(['merge-requests', 'counts'], mockMergeRequests);
+  keys.push(['merge-requests', 'counts']);
+
+  // Entities for assignee resolution
+  queryClient.setQueryData(ELEMENT_KEYS.entities, mockEntities);
+  keys.push(ELEMENT_KEYS.entities);
+
+  injectedKeys = keys;
+}
+
 // ============================================================================
 // Public API
 // ============================================================================
@@ -862,6 +939,9 @@ export function injectTourMockData(
     case 'messages':
       injectMessagesContext(queryClient);
       break;
+    case 'merge-requests':
+      injectMergeRequestsContext(queryClient);
+      break;
   }
 }
 
@@ -884,6 +964,7 @@ export function clearTourMockData(queryClient: QueryClient): void {
   queryClient.invalidateQueries({ queryKey: ['tasks'] });
   queryClient.invalidateQueries({ queryKey: ['channels'] });
   queryClient.invalidateQueries({ queryKey: ['entities'] });
+  queryClient.invalidateQueries({ queryKey: ['merge-requests'] });
 
   currentContext = null;
   injectedKeys = [];
