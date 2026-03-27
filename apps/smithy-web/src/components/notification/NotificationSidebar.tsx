@@ -294,6 +294,7 @@ export function NotificationSidebar({
       )}
 
       {/* Sidebar panel */}
+      {/* viewport-based: renders as fixed overlay outside @container */}
       <div
         ref={sidebarRef}
         className={`

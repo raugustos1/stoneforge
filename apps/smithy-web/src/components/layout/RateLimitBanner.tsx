@@ -81,6 +81,7 @@ export function RateLimitBanner() {
 
   return (
     <div
+      /* viewport-based: renders outside @container, between header and main */
       className="flex items-center gap-3 px-4 md:px-6 py-2 bg-[var(--color-warning-bg)] border-b border-[var(--color-warning)]/30"
       role="alert"
       data-testid="rate-limit-banner"

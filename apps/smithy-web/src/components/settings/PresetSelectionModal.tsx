@@ -111,6 +111,7 @@ export function PresetSelectionModal({
         </div>
 
         {/* Preset Cards */}
+        {/* viewport-based: renders in fixed overlay outside @container */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
           {PRESETS.map((preset) => (
             <PresetCard
@@ -251,6 +252,7 @@ export function InlinePresetSelector({
 
   return (
     <div data-testid="inline-preset-selector">
+      {/* viewport-based: renders in fixed overlay outside @container */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
         {PRESETS.map((preset) => (
           <InlinePresetCard

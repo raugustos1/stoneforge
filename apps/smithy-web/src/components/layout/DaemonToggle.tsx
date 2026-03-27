@@ -41,6 +41,7 @@ export function DaemonToggle() {
       <Tooltip content={status?.reason || 'Daemon unavailable'} side="bottom">
         <div className="flex items-center gap-2 px-2 py-1.5 text-[var(--color-text-tertiary)] cursor-not-allowed">
           <AlertCircle className="w-4 h-4" />
+          {/* viewport-based: renders in AppShell header, outside @container */}
           <span className="hidden lg:inline text-sm">Autopilot</span>
         </div>
       </Tooltip>

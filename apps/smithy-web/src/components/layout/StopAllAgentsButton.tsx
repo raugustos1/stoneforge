@@ -50,6 +50,7 @@ export function StopAllAgentsButton() {
         ) : (
           <StopCircle className="w-4 h-4" />
         )}
+        {/* viewport-based: renders in AppShell header, outside @container */}
         <span className="hidden lg:inline">
           {stopAllAgents.isPending ? 'Stopping...' : 'Stop All'}
         </span>
