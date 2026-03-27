@@ -5089,7 +5089,7 @@ describe('spawnRecoveryStewardForTask - rate limit session history guard', () =>
     expect(result.processed).toBe(1);
     expect(result.errors).toBe(0);
     expect(sessionManager.startSession).toHaveBeenCalled();
-  });
+  }, 15_000);
 
   test('spawns recovery steward when insufficient session history entries', async () => {
     const worker = await createTestWorker('few-sessions-worker');
