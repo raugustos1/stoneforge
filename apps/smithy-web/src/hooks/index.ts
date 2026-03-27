@@ -39,6 +39,18 @@ export {
 
 export type { Breakpoint, DeviceType } from './useBreakpoint';
 
+// Container-aware responsive hooks (use container width, not viewport)
+export {
+  useContainerWidth,
+  useContainerBreakpoint,
+  useContainerIsMobile,
+  useContainerIsTablet,
+  useContainerIsDesktop,
+  useContainerWidthObserver,
+  ContainerWidthProvider,
+  ContainerWidthContext,
+} from './useContainerBreakpoint';
+
 // Deep-link navigation hook
 export { useDeepLink } from './useDeepLink';
 export type { UseDeepLinkOptions, UseDeepLinkResult } from './useDeepLink';

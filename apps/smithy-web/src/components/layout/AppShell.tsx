@@ -18,6 +18,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNotifications } from '../../api/hooks/useNotifications';
 import { usePendingApprovalCount, useApprovalRequestWatcher } from '../../api/hooks/useApprovalRequests';
 import { useGlobalKeyboardShortcuts, useOnboardingTour } from '../../hooks';
+import { useContainerWidthObserver, ContainerWidthProvider } from '../../hooks/useContainerBreakpoint';
 import { useIsMobile, useIsTablet } from '@stoneforge/ui';
 import { toast } from 'sonner';
 import {
@@ -686,6 +687,9 @@ export function AppShell() {
     setIsMaximized: setDirectorMaximized,
   } = useDirectorPanelState();
 
+  // Container-width tracking for responsive hooks inside <main>
+  const { containerRef, width: containerWidth } = useContainerWidthObserver();
+
   const health = useHealth();
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -1345,8 +1349,10 @@ export function AppShell() {
          *   - @container on parent → sets container-type: inline-size
          *   - @sm:, @md:, @lg:, @xl: on children → respond to container width
          */}
-        <main className="flex-1 overflow-y-auto p-4 @md:p-6 bg-[var(--color-bg)] @container">
-          <Outlet />
+        <main ref={containerRef} className="flex-1 overflow-y-auto p-4 @md:p-6 bg-[var(--color-bg)] @container">
+          <ContainerWidthProvider width={containerWidth}>
+            <Outlet />
+          </ContainerWidthProvider>
         </main>
       </div>
 
