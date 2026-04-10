@@ -10,12 +10,8 @@ COPY . .
 RUN pnpm install --frozen-lockfile
 RUN pnpm build
 
-# Instala o CLI globalmente a partir do build local
-RUN npm link packages/smithy
-
-# Inicializa o workspace
-RUN sf init
+RUN node ./packages/smithy/dist/bin/sf.js init
 
 EXPOSE 3457
 
-CMD ["sf", "serve", "--host", "0.0.0.0"]
+CMD ["node", "./packages/smithy/dist/bin/sf.js", "serve", "--host", "0.0.0.0"]
