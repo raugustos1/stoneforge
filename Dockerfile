@@ -12,6 +12,9 @@ RUN pnpm build
 
 RUN node ./packages/smithy/dist/bin/sf.js init
 
+# Clona o backend dentro do workspace
+RUN git clone https://github.com/raugustos1/medusabackend.git /app/project
+
 EXPOSE 3457
 
 CMD ["node", "./packages/smithy/dist/bin/sf.js", "serve", "--host", "0.0.0.0"]
